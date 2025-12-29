@@ -11,7 +11,6 @@ export default function Home() {
   const [message, setMessage] = useState('');
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
-  // Ref for focus management on error
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -25,7 +24,6 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 1. Clean Input
     const cleanId = sunetId.split('@')[0].trim();
 
     if (!cleanId) {
@@ -35,7 +33,6 @@ export default function Home() {
       return;
     }
 
-    // 2. Construct Email
     const fullEmail = `${cleanId}${domain}`;
 
     setStatus('loading');
@@ -54,16 +51,15 @@ export default function Home() {
         throw new Error(data.error || 'Verification failed.');
       }
 
-      // 3. Success
       setStatus('success');
       setSunetId('');
+      localStorage.setItem('sentEmail', fullEmail);
       localStorage.setItem('inviteSent', 'true');
       setHasSubmitted(true);
 
     } catch (error: any) {
       setStatus('error');
       setMessage(error.message);
-      // If it's a specific error, focus input again
       if (error.message.includes('valid')) {
          inputRef.current?.focus();
       }
@@ -92,29 +88,22 @@ export default function Home() {
 
           {/* Header Section */}
           <div className="mb-8 text-center space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-200 text-[11px] font-semibold tracking-wide text-gray-600 uppercase">
-              <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              Stanford Alumni Only
-            </div>
             <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-              Winter Gathering
+              Stanford Alumni Mixer
             </h1>
             <p className="text-gray-500 text-sm leading-relaxed">
-              Friday, Jan 24 • San Francisco<br />
+              February 2026 • San Francisco<br />
               <span className="opacity-80">Verify your status to access the guest list.</span>
             </p>
           </div>
 
-          {/* Logic Switch: Form vs Success */}
           {!hasSubmitted ? (
             <form onSubmit={handleSubmit} className="space-y-6">
 
               {/* Domain Toggle */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 ml-1">
-                  I am using a...
+                  Select Email Type
                 </label>
                 <div className="bg-gray-100 p-1 rounded-lg flex relative">
                   <button
@@ -126,7 +115,7 @@ export default function Home() {
                         : 'text-gray-500 hover:text-gray-900'
                     }`}
                   >
-                    @stanford.edu
+                    Stanford
                   </button>
                   <button
                     type="button"
@@ -137,7 +126,7 @@ export default function Home() {
                         : 'text-gray-500 hover:text-gray-900'
                     }`}
                   >
-                    @alumni
+                    Alumni
                   </button>
                 </div>
               </div>
@@ -169,14 +158,14 @@ export default function Home() {
                     required
                     disabled={status === 'loading'}
                   />
-                  {/* Domain Suffix Visual */}
+                  {/* Visual Suffix showing the actual domain */}
                   <span className="absolute right-4 text-gray-400 text-sm pointer-events-none select-none transition-opacity duration-200 font-medium">
                     {domain}
                   </span>
                 </div>
               </div>
 
-              {/* Live Error Message (ARIA Live) */}
+              {/* Error Message */}
               <div aria-live="polite" className="min-h-[20px]">
                 {status === 'error' && (
                   <p className="text-sm text-red-600 flex items-center gap-1.5 animate-in slide-in-from-top-1 fade-in duration-200">
@@ -207,10 +196,6 @@ export default function Home() {
                   'Get Invite Link'
                 )}
               </button>
-
-              <p className="text-xs text-center text-gray-400">
-                 Secure verification via Stanford email.
-              </p>
 
             </form>
           ) : (
