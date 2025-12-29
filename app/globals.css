@@ -1,20 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f9fafb; /* gray-50 */
+  --foreground: #111827; /* gray-900 */
+  --stanford-cardinal: #8C1515;
+  --stanford-cardinal-dark: #681010;
 }
 
-/* Simplified theme block */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-cardinal: var(--stanford-cardinal);
+  --color-cardinal-dark: var(--stanford-cardinal-dark);
+
+  /* Custom Animations */
+  --animate-enter: enter 0.6s ease-out forwards;
+  @keyframes enter {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom focus ring to match Cardinal Red */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-cardinal/20 focus:border-cardinal transition-all duration-200;
 }
