@@ -1,14 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Home() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+
+  // Check if user already submitted
+  useEffect(() => {
+    const sent = localStorage.getItem('inviteSent');
+    if (sent) {
+      setHasSubmitted(true);
+      setStatus('success');
+      setMessage('You have already requested an invite. Check your inbox!');
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Frontend Validation: Checks for any "stanford.edu" domain
+    if (!email.toLowerCase().endsWith('stanford.edu')) {
+      setStatus('error');
+      setMessage('Please enter a valid @stanford.edu or @alumni.stanford.edu address.');
+      return;
+    }
+
     setStatus('loading');
     setMessage('');
 
@@ -25,13 +44,24 @@ export default function Home() {
         throw new Error(data.error || 'Something went wrong.');
       }
 
+      // Success
       setStatus('success');
       setMessage('Success! The Partiful link has been sent to your inbox.');
       setEmail('');
+      localStorage.setItem('inviteSent', 'true'); // Prevent double submission
+      setHasSubmitted(true);
+
     } catch (error: any) {
       setStatus('error');
       setMessage(error.message);
     }
+  };
+
+  const handleReset = () => {
+    localStorage.removeItem('inviteSent');
+    setHasSubmitted(false);
+    setStatus('idle');
+    setMessage('');
   };
 
   return (
@@ -43,38 +73,57 @@ export default function Home() {
               Alumni Event RSVP
             </h1>
             <p className="mt-2 text-sm text-gray-500">
-              Exclusive to Stanford Alumni. Enter your alumni email below to receive the invite.
+              Exclusive to Stanford Grads. Enter your Stanford email below to receive the invite.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="sr-only">Email Address</label>
-              <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="allen@alumni.stanford.edu"
-                className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-black focus:ring-1 focus:ring-black outline-none transition sm:text-sm"
-                required
-                disabled={status === 'success'}
-              />
+          {!hasSubmitted ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="email" className="sr-only">Email Address</label>
+                <input
+                  type="email"
+                  id="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (status === 'error') setStatus('idle');
+                  }}
+                  placeholder="leland@stanford.edu"
+                  className={`block w-full rounded-lg border px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none transition sm:text-sm ${
+                    status === 'error'
+                      ? 'border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                      : 'border-gray-300 focus:border-black focus:ring-1 focus:ring-black'
+                  }`}
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={status === 'loading'}
+                className="w-full rounded-lg bg-black px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {status === 'loading' ? 'Verifying...' : 'Get Invite'}
+              </button>
+            </form>
+          ) : (
+            <div className="space-y-4">
+               <div className="rounded-md bg-green-50 p-4 text-center">
+                 <p className="text-sm font-medium text-green-800">Invite Sent!</p>
+                 <p className="mt-1 text-xs text-green-700">Check your inbox for the link.</p>
+               </div>
+               <button
+                 onClick={handleReset}
+                 className="w-full text-xs text-gray-400 hover:text-gray-600 underline"
+               >
+                 Send to a different email
+               </button>
             </div>
+          )}
 
-            <button
-              type="submit"
-              disabled={status === 'loading' || status === 'success'}
-              className="w-full rounded-lg bg-black px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50 disabled:cursor-not-allowed transition"
-            >
-              {status === 'loading' ? 'Verifying...' : status === 'success' ? 'Sent!' : 'Get Invite'}
-            </button>
-          </form>
-
-          {message && (
-            <div className={`mt-4 rounded-md p-3 text-sm text-center ${
-              status === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-            }`}>
+          {status === 'error' && !hasSubmitted && (
+            <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-center text-red-700">
               {message}
             </div>
           )}

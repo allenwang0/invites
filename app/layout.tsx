@@ -7,6 +7,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Stanford Alumni Event",
   description: "RSVP for the upcoming alumni gathering.",
+  icons: {
+    icon: "/favicon.ico", // Optional: Add a favicon if you have one
+  },
 };
 
 export default function RootLayout({
