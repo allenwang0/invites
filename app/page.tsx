@@ -11,7 +11,12 @@ export default function Home() {
   const [message, setMessage] = useState('');
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
+  // State for the "stick to cursor" effect
+  const [textWidth, setTextWidth] = useState(0);
+
   const inputRef = useRef<HTMLInputElement>(null);
+  // Ref for a hidden span used to measure text width exactly
+  const measureRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const sent = localStorage.getItem('inviteSent');
@@ -20,6 +25,15 @@ export default function Home() {
       setStatus('success');
     }
   }, []);
+
+  // Effect to calculate text width whenever input changes
+  useEffect(() => {
+    if (measureRef.current) {
+      // Get the width of the hidden span text
+      const width = measureRef.current.offsetWidth;
+      setTextWidth(width);
+    }
+  }, [sunetId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +107,7 @@ export default function Home() {
             </h1>
             <p className="text-gray-500 text-sm leading-relaxed">
               February 2026 • San Francisco<br />
-              <span className="opacity-80">Verify your status to access the guest list.</span>
+              <span className="opacity-80">Welcome to all Stanford community members</span>
             </p>
           </div>
 
@@ -136,7 +150,21 @@ export default function Home() {
                 <label htmlFor="sunetId" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 ml-1">
                   SUNet ID
                 </label>
+
                 <div className="relative flex items-center">
+                  {/* Hidden span to measure text width exactly.
+                    Must match input font/padding exactly to align perfectly.
+                  */}
+                  <span
+                    ref={measureRef}
+                    className="absolute opacity-0 pointer-events-none whitespace-pre px-4 text-base sm:text-sm font-normal"
+                    aria-hidden="true"
+                  >
+                    {sunetId || 'leland'} {/* Use placeholder width if empty to position correctly? No, stick to empty */}
+                    {/* Actually better to measure just the value. If value empty, width is 0 */}
+                    {sunetId}
+                  </span>
+
                   <input
                     ref={inputRef}
                     type="text"
@@ -150,7 +178,7 @@ export default function Home() {
                     autoComplete="username"
                     autoCorrect="off"
                     autoCapitalize="off"
-                    className={`block w-full rounded-lg border bg-white px-4 py-3 text-gray-900 placeholder:text-gray-300 outline-none transition-all shadow-sm ${
+                    className={`block w-full rounded-lg border bg-white px-4 py-3 text-gray-900 placeholder:text-gray-300 outline-none transition-all shadow-sm z-10 bg-transparent ${
                       status === 'error'
                         ? 'border-red-300 ring-2 ring-red-100'
                         : 'border-gray-200 focus:border-cardinal focus:ring-2 focus:ring-cardinal/10'
@@ -158,8 +186,20 @@ export default function Home() {
                     required
                     disabled={status === 'loading'}
                   />
-                  {/* Visual Suffix showing the actual domain */}
-                  <span className="absolute right-4 text-gray-400 text-sm pointer-events-none select-none transition-opacity duration-200 font-medium">
+
+                  {/* Dynamic Suffix */}
+                  <span
+                    className={`absolute pointer-events-none select-none transition-colors duration-200 z-0 text-base sm:text-sm ${
+                      sunetId.length > 0 ? 'text-black' : 'text-gray-300'
+                    }`}
+                    style={{
+                      // 16px is the left padding (px-4)
+                      // We limit the left position to prevent overflow if they type a novel
+                      left: `${Math.min(textWidth + 16, 300)}px`,
+                      // If empty, show it at the start (16px)? Or maybe ghosted right after placeholder?
+                      // Let's keep it right after the cursor. If cursor is at 0, it's at 16px.
+                    }}
+                  >
                     {domain}
                   </span>
                 </div>
