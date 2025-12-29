@@ -22,11 +22,11 @@ export async function POST(request: Request) {
 
     const emailLower = email.toLowerCase().trim();
 
-    // STRICT VALIDATION:
-    // Must end with ".stanford.edu" to catch @stanford.edu AND @alumni.stanford.edu
-    // AND @cs.stanford.edu, etc.
-    // Also ensures it includes an '@' symbol.
-    if (!emailLower.endsWith('.stanford.edu') || !emailLower.includes('@')) {
+    // FIXED VALIDATION:
+    // Allow standard domain (@stanford.edu) OR subdomains (.stanford.edu)
+    const isValidDomain = emailLower.endsWith('@stanford.edu') || emailLower.endsWith('.stanford.edu');
+
+    if (!isValidDomain || !emailLower.includes('@')) {
        return NextResponse.json(
         { error: 'Access denied. Please use a valid Stanford email.' },
         { status: 403 }
