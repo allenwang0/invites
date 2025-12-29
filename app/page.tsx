@@ -5,20 +5,15 @@ import { useState, useEffect, useRef } from 'react';
 type Domain = '@stanford.edu' | '@alumni.stanford.edu';
 
 export default function Home() {
+  // sunetId now holds the FULL value (e.g., "leland@stanford.edu")
   const [sunetId, setSunetId] = useState('');
   const [domain, setDomain] = useState<Domain>('@stanford.edu');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [hasSubmitted, setHasSubmitted] = useState(false);
-
-  // Track input focus for the UI behavior
   const [isFocused, setIsFocused] = useState(false);
 
-  // State for the "stick to cursor" effect
-  const [textWidth, setTextWidth] = useState(0);
-
   const inputRef = useRef<HTMLInputElement>(null);
-  const measureRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const sent = localStorage.getItem('inviteSent');
@@ -28,26 +23,63 @@ export default function Home() {
     }
   }, []);
 
-  // Effect to calculate text width whenever input changes
+  // If user switches domain toggle while typing, update the suffix in the input
   useEffect(() => {
-    if (measureRef.current) {
-      const width = measureRef.current.offsetWidth;
-      setTextWidth(width);
+    if (sunetId.includes('@')) {
+      const prefix = sunetId.split('@')[0];
+      setSunetId(`${prefix}${domain}`);
     }
-  }, [sunetId]);
+  }, [domain]); // Only re-run when domain changes
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+
+    // 1. Detect if user is starting to type from empty
+    // If we went from empty "" to something "a", append the domain immediately
+    if (sunetId === '' && newValue.length === 1) {
+      const char = newValue;
+      setSunetId(`${char}${domain}`);
+
+      // We must manually set the cursor position after the character they just typed
+      // otherwise it might jump to the end of the email
+      requestAnimationFrame(() => {
+        if (inputRef.current) {
+          inputRef.current.setSelectionRange(1, 1);
+        }
+      });
+      return;
+    }
+
+    // 2. Standard typing behavior
+    // Allow them to edit, but if they delete the whole prefix, reset to empty
+    if (newValue === domain || newValue === '@') {
+        setSunetId('');
+    } else {
+        setSunetId(newValue);
+    }
+
+    if (status === 'error') setStatus('idle');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanId = sunetId.split('@')[0].trim();
 
-    if (!cleanId) {
+    // Since the domain is literally in the text box, we just use sunetId directly
+    if (!sunetId || sunetId === domain) {
       setStatus('error');
       setMessage('Please enter your SUNet ID.');
       inputRef.current?.focus();
       return;
     }
 
-    const fullEmail = `${cleanId}${domain}`;
+    // Double check it ends with correct domain (in case they edited it weirdly)
+    // If they messed it up, we can auto-fix or error. Let's auto-fix.
+    let finalEmail = sunetId;
+    if (!finalEmail.endsWith('stanford.edu')) {
+        const prefix = finalEmail.split('@')[0];
+        finalEmail = `${prefix}${domain}`;
+    }
+
     setStatus('loading');
     setMessage('');
 
@@ -55,7 +87,7 @@ export default function Home() {
       const response = await fetch('/api/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: fullEmail }),
+        body: JSON.stringify({ email: finalEmail }),
       });
 
       const data = await response.json();
@@ -66,7 +98,7 @@ export default function Home() {
 
       setStatus('success');
       setSunetId('');
-      localStorage.setItem('sentEmail', fullEmail);
+      localStorage.setItem('sentEmail', finalEmail);
       localStorage.setItem('inviteSent', 'true');
       setHasSubmitted(true);
 
@@ -108,6 +140,7 @@ export default function Home() {
           {!hasSubmitted ? (
             <form onSubmit={handleSubmit} className="space-y-6">
 
+              {/* Domain Toggle */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 ml-1">
                   Select Email Type
@@ -146,16 +179,7 @@ export default function Home() {
 
                 <div className="relative flex items-center">
 
-                  {/* Hidden Measure Span */}
-                  <span
-                    ref={measureRef}
-                    className="absolute opacity-0 pointer-events-none whitespace-pre px-4 text-base sm:text-sm font-normal"
-                    aria-hidden="true"
-                  >
-                    {sunetId}
-                  </span>
-
-                  {/* Input Field */}
+                  {/* The actual Input Field */}
                   <input
                     ref={inputRef}
                     type="text"
@@ -163,10 +187,7 @@ export default function Home() {
                     value={sunetId}
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
-                    onChange={(e) => {
-                      setSunetId(e.target.value);
-                      if (status === 'error') setStatus('idle');
-                    }}
+                    onChange={handleInputChange}
                     placeholder={isFocused ? '' : 'leland'}
                     autoComplete="username"
                     autoCorrect="off"
@@ -180,26 +201,19 @@ export default function Home() {
                     disabled={status === 'loading'}
                   />
 
-                  {/* Dynamic Suffix (Fixed Z-Index & Positioning) */}
+                  {/* Visual Suffix (Gray Ghost Text)
+                      Only visible when:
+                      1. Field is empty (sunetId length is 0)
+                      2. AND user is NOT focused (per user request: "click into it... ending disappears")
+                  */}
                   <span
-                    className={`absolute pointer-events-none select-none transition-all duration-200 top-0 bottom-0 flex items-center z-20 text-base sm:text-sm ${
-                      sunetId.length > 0 ? 'text-gray-900' : 'text-gray-400'
+                    className={`absolute right-4 pointer-events-none select-none text-base sm:text-sm text-gray-300 transition-opacity duration-200 z-20 ${
+                      (sunetId.length === 0 && !isFocused) ? 'opacity-100' : 'opacity-0'
                     }`}
-                    style={{
-                      // If typing: Snap to left (text width + 16px padding)
-                      // If empty: Snap to right (16px padding)
-                      left: sunetId.length > 0 ? `${Math.min(textWidth + 16, 300)}px` : 'auto',
-                      right: sunetId.length > 0 ? 'auto' : '16px',
-
-                      // Visibility Logic:
-                      // 1. Focused & Empty -> HIDDEN (Opacity 0)
-                      // 2. Focused & Typing -> VISIBLE (Black, Left)
-                      // 3. Idle & Empty -> VISIBLE (Gray, Right)
-                      opacity: (isFocused && sunetId.length === 0) ? 0 : 1
-                    }}
                   >
                     {domain}
                   </span>
+
                 </div>
               </div>
 
