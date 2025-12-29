@@ -10,7 +10,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const PARTIFUL_LINK = 'https://partiful.com/e/YOUR_EVENT_ID_HERE';
+const PARTIFUL_LINK = 'https://partiful.com/e/O7quZS46xjzssWIWb5b8';
 
 export async function POST(request: Request) {
   try {
