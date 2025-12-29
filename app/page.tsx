@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react';
 
+type Domain = '@stanford.edu' | '@alumni.stanford.edu';
+
 export default function Home() {
-  const [email, setEmail] = useState('');
+  const [sunetId, setSunetId] = useState('');
+  const [domain, setDomain] = useState<Domain>('@stanford.edu');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [hasSubmitted, setHasSubmitted] = useState(false);
@@ -21,12 +24,17 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Frontend Validation: Checks for any "stanford.edu" domain
-    if (!email.toLowerCase().endsWith('stanford.edu')) {
+    // 1. Clean the input (remove spaces or accidentally typed @ domains)
+    const cleanId = sunetId.split('@')[0].trim();
+
+    if (!cleanId) {
       setStatus('error');
-      setMessage('Please enter a valid @stanford.edu or @alumni.stanford.edu address.');
+      setMessage('Please enter your SUNet ID.');
       return;
     }
+
+    // 2. Construct the full email
+    const fullEmail = `${cleanId}${domain}`;
 
     setStatus('loading');
     setMessage('');
@@ -35,7 +43,7 @@ export default function Home() {
       const response = await fetch('/api/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: fullEmail }),
       });
 
       const data = await response.json();
@@ -47,8 +55,8 @@ export default function Home() {
       // Success
       setStatus('success');
       setMessage('Success! The Partiful link has been sent to your inbox.');
-      setEmail('');
-      localStorage.setItem('inviteSent', 'true'); // Prevent double submission
+      setSunetId('');
+      localStorage.setItem('inviteSent', 'true');
       setHasSubmitted(true);
 
     } catch (error: any) {
@@ -62,41 +70,81 @@ export default function Home() {
     setHasSubmitted(false);
     setStatus('idle');
     setMessage('');
+    setSunetId('');
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4">
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-8">
-          <div className="mb-6 text-center">
+          <div className="mb-8 text-center">
             <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
               Alumni Event RSVP
             </h1>
             <p className="mt-2 text-sm text-gray-500">
-              Exclusive to Stanford Grads. Enter your Stanford email below to receive the invite.
+              Exclusive to Stanford Grads. Enter your details below.
             </p>
           </div>
 
           {!hasSubmitted ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="email" className="sr-only">Email Address</label>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (status === 'error') setStatus('idle');
-                  }}
-                  placeholder="leland@stanford.edu"
-                  className={`block w-full rounded-lg border px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none transition sm:text-sm ${
-                    status === 'error'
-                      ? 'border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-500'
-                      : 'border-gray-300 focus:border-black focus:ring-1 focus:ring-black'
+            <form onSubmit={handleSubmit} className="space-y-6">
+
+              {/* Domain Toggle (Segmented Control) */}
+              <div className="bg-gray-100 p-1 rounded-lg flex relative">
+                <button
+                  type="button"
+                  onClick={() => setDomain('@stanford.edu')}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all duration-200 text-center ${
+                    domain === '@stanford.edu'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-900'
                   }`}
-                  required
-                />
+                >
+                  @stanford.edu
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDomain('@alumni.stanford.edu')}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all duration-200 text-center ${
+                    domain === '@alumni.stanford.edu'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                >
+                  @alumni.stanford.edu
+                </button>
+              </div>
+
+              {/* SUNet ID Input */}
+              <div>
+                <label htmlFor="sunetId" className="block text-xs font-medium text-gray-700 mb-1 ml-1">
+                  SUNet ID
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    id="sunetId"
+                    value={sunetId}
+                    onChange={(e) => {
+                      setSunetId(e.target.value);
+                      if (status === 'error') setStatus('idle');
+                    }}
+                    placeholder="leland"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    className={`block w-full rounded-lg border px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none transition sm:text-sm ${
+                      status === 'error'
+                        ? 'border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                        : 'border-gray-300 focus:border-black focus:ring-1 focus:ring-black'
+                    }`}
+                    required
+                  />
+                  {/* Visual suffix to show the user what the full email looks like */}
+                  <span className="absolute right-4 top-3.5 text-gray-400 text-sm pointer-events-none select-none">
+                    {domain}
+                  </span>
+                </div>
               </div>
 
               <button
@@ -128,7 +176,7 @@ export default function Home() {
             </div>
           )}
         </div>
-        
+
         <div className="bg-gray-50 px-8 py-4 border-t border-gray-100">
           <p className="text-xs text-center text-gray-500">
             Having trouble? DM the host directly.
