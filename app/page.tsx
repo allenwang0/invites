@@ -18,7 +18,6 @@ export default function Home() {
   const [textWidth, setTextWidth] = useState(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  // Ref for a hidden span used to measure text width exactly
   const measureRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
@@ -32,7 +31,6 @@ export default function Home() {
   // Effect to calculate text width whenever input changes
   useEffect(() => {
     if (measureRef.current) {
-      // Get the width of the hidden span text
       const width = measureRef.current.offsetWidth;
       setTextWidth(width);
     }
@@ -40,7 +38,6 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const cleanId = sunetId.split('@')[0].trim();
 
     if (!cleanId) {
@@ -51,7 +48,6 @@ export default function Home() {
     }
 
     const fullEmail = `${cleanId}${domain}`;
-
     setStatus('loading');
     setMessage('');
 
@@ -95,15 +91,10 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6 bg-gradient-to-b from-gray-50 to-gray-100 selection:bg-cardinal/10 selection:text-cardinal">
 
-      {/* Main Card */}
       <div className="w-full max-w-[440px] bg-white rounded-xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden animate-enter relative">
-
-        {/* Stanford Accent Line */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-cardinal" />
 
         <div className="p-8 sm:p-10">
-
-          {/* Header Section */}
           <div className="mb-8 text-center space-y-2">
             <h1 className="text-3xl font-bold tracking-tight text-gray-900">
               Stanford Alumni Mixer
@@ -117,7 +108,6 @@ export default function Home() {
           {!hasSubmitted ? (
             <form onSubmit={handleSubmit} className="space-y-6">
 
-              {/* Domain Toggle */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 ml-1">
                   Select Email Type
@@ -148,14 +138,15 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* SUNet ID Input */}
+              {/* SUNet ID Input Area */}
               <div className="relative group">
                 <label htmlFor="sunetId" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 ml-1">
                   SUNet ID
                 </label>
 
                 <div className="relative flex items-center">
-                  {/* Hidden span to measure text width exactly. */}
+
+                  {/* Hidden Measure Span */}
                   <span
                     ref={measureRef}
                     className="absolute opacity-0 pointer-events-none whitespace-pre px-4 text-base sm:text-sm font-normal"
@@ -164,6 +155,7 @@ export default function Home() {
                     {sunetId}
                   </span>
 
+                  {/* Input Field */}
                   <input
                     ref={inputRef}
                     type="text"
@@ -179,7 +171,7 @@ export default function Home() {
                     autoComplete="username"
                     autoCorrect="off"
                     autoCapitalize="off"
-                    className={`block w-full rounded-lg border bg-white px-4 py-3 text-gray-900 placeholder:text-gray-300 outline-none transition-all shadow-sm z-10 bg-transparent ${
+                    className={`block w-full rounded-lg border bg-white px-4 py-3 text-gray-900 placeholder:text-gray-300 outline-none transition-all shadow-sm z-10 ${
                       status === 'error'
                         ? 'border-red-300 ring-2 ring-red-100'
                         : 'border-gray-200 focus:border-cardinal focus:ring-2 focus:ring-cardinal/10'
@@ -188,20 +180,21 @@ export default function Home() {
                     disabled={status === 'loading'}
                   />
 
-                  {/* Dynamic Suffix */}
+                  {/* Dynamic Suffix (Fixed Z-Index & Positioning) */}
                   <span
-                    className={`absolute pointer-events-none select-none transition-all duration-200 z-0 text-base sm:text-sm ${
+                    className={`absolute pointer-events-none select-none transition-all duration-200 top-0 bottom-0 flex items-center z-20 text-base sm:text-sm ${
                       sunetId.length > 0 ? 'text-gray-900' : 'text-gray-400'
                     }`}
                     style={{
-                      // 1. If typing (sunetId > 0): Position after text (left: calculated width + 16px padding)
-                      // 2. If empty: Position on the far right (right: 16px padding)
+                      // If typing: Snap to left (text width + 16px padding)
+                      // If empty: Snap to right (16px padding)
                       left: sunetId.length > 0 ? `${Math.min(textWidth + 16, 300)}px` : 'auto',
                       right: sunetId.length > 0 ? 'auto' : '16px',
-                      // 3. Visibility Logic:
-                      //    - If empty AND focused -> Disappear (opacity 0)
-                      //    - If empty AND idle -> Visible (Gray, on right)
-                      //    - If typing -> Visible (Black, on left)
+
+                      // Visibility Logic:
+                      // 1. Focused & Empty -> HIDDEN (Opacity 0)
+                      // 2. Focused & Typing -> VISIBLE (Black, Left)
+                      // 3. Idle & Empty -> VISIBLE (Gray, Right)
                       opacity: (isFocused && sunetId.length === 0) ? 0 : 1
                     }}
                   >
@@ -210,7 +203,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Error Message */}
               <div aria-live="polite" className="min-h-[20px]">
                 {status === 'error' && (
                   <p className="text-sm text-red-600 flex items-center gap-1.5 animate-in slide-in-from-top-1 fade-in duration-200">
@@ -223,7 +215,6 @@ export default function Home() {
                 )}
               </div>
 
-              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={status === 'loading'}
@@ -244,7 +235,6 @@ export default function Home() {
 
             </form>
           ) : (
-            /* Success State */
             <div className="text-center animate-in zoom-in-95 duration-300">
               <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
                  <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -267,10 +257,6 @@ export default function Home() {
                   <span className="flex-shrink-0 w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center text-xs font-bold text-gray-400">2</span>
                   <span>Look for subject: "Stanford Alumni Event"</span>
                 </div>
-                <div className="flex gap-3 text-sm text-gray-600">
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center text-xs font-bold text-gray-400">3</span>
-                  <span>If missing, check Spam/Promotions</span>
-                </div>
               </div>
 
               <button
@@ -281,10 +267,8 @@ export default function Home() {
                </button>
             </div>
           )}
-
         </div>
 
-        {/* Footer in Card */}
         <div className="bg-gray-50/80 px-8 py-4 border-t border-gray-100 flex justify-center">
            <a href="#" className="text-xs text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1">
              Questions? DM the host
