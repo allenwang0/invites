@@ -11,6 +11,9 @@ export default function Home() {
   const [message, setMessage] = useState('');
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
+  // Track input focus for the UI behavior
+  const [isFocused, setIsFocused] = useState(false);
+
   // State for the "stick to cursor" effect
   const [textWidth, setTextWidth] = useState(0);
 
@@ -152,16 +155,12 @@ export default function Home() {
                 </label>
 
                 <div className="relative flex items-center">
-                  {/* Hidden span to measure text width exactly.
-                    Must match input font/padding exactly to align perfectly.
-                  */}
+                  {/* Hidden span to measure text width exactly. */}
                   <span
                     ref={measureRef}
                     className="absolute opacity-0 pointer-events-none whitespace-pre px-4 text-base sm:text-sm font-normal"
                     aria-hidden="true"
                   >
-                    {sunetId || 'leland'} {/* Use placeholder width if empty to position correctly? No, stick to empty */}
-                    {/* Actually better to measure just the value. If value empty, width is 0 */}
                     {sunetId}
                   </span>
 
@@ -170,11 +169,13 @@ export default function Home() {
                     type="text"
                     id="sunetId"
                     value={sunetId}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
                     onChange={(e) => {
                       setSunetId(e.target.value);
                       if (status === 'error') setStatus('idle');
                     }}
-                    placeholder="leland"
+                    placeholder={isFocused ? '' : 'leland'}
                     autoComplete="username"
                     autoCorrect="off"
                     autoCapitalize="off"
@@ -189,15 +190,19 @@ export default function Home() {
 
                   {/* Dynamic Suffix */}
                   <span
-                    className={`absolute pointer-events-none select-none transition-colors duration-200 z-0 text-base sm:text-sm ${
-                      sunetId.length > 0 ? 'text-black' : 'text-gray-300'
+                    className={`absolute pointer-events-none select-none transition-all duration-200 z-0 text-base sm:text-sm ${
+                      sunetId.length > 0 ? 'text-gray-900' : 'text-gray-400'
                     }`}
                     style={{
-                      // 16px is the left padding (px-4)
-                      // We limit the left position to prevent overflow if they type a novel
-                      left: `${Math.min(textWidth + 16, 300)}px`,
-                      // If empty, show it at the start (16px)? Or maybe ghosted right after placeholder?
-                      // Let's keep it right after the cursor. If cursor is at 0, it's at 16px.
+                      // 1. If typing (sunetId > 0): Position after text (left: calculated width + 16px padding)
+                      // 2. If empty: Position on the far right (right: 16px padding)
+                      left: sunetId.length > 0 ? `${Math.min(textWidth + 16, 300)}px` : 'auto',
+                      right: sunetId.length > 0 ? 'auto' : '16px',
+                      // 3. Visibility Logic:
+                      //    - If empty AND focused -> Disappear (opacity 0)
+                      //    - If empty AND idle -> Visible (Gray, on right)
+                      //    - If typing -> Visible (Black, on left)
+                      opacity: (isFocused && sunetId.length === 0) ? 0 : 1
                     }}
                   >
                     {domain}
